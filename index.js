@@ -23,12 +23,14 @@ io.on('connection', (socket) => {
   console.log('A user connected');
   bodies[socket.id] = {
     x: 0,
-    y: 0
+    y: 0,
+    points: []
   }
 
   socket.on('updateBody', (data) => {
     bodies[socket.id].x = data.x;
     bodies[socket.id].y = data.y;
+    bodies[socket.id].points = data.points;
   })
   
   // Handle a disconnect event
@@ -48,3 +50,4 @@ const frameRate = 30;
 setInterval(() => {
   io.emit("bodies", bodies);
 }, 1000 / frameRate);
+

@@ -1,50 +1,50 @@
-const express = require("express");
-const socketio = require("socket.io");
-const http = require("http");
-const port = 3000;
 
+// Import required modules
+const express = require('express');
+const http = require('http');
+const socketIO = require('socket.io');
+
+// Create an Express app
 const app = express();
 const server = http.createServer(app);
-const io = new socketio.Server(server);
 
-// uses static site from /public
-app.use(express.static("public"));
+// Create a Socket.io instance
+const io = socketIO(server);
 
-let number;
-let timesUpdated = 0
+app.use(express.static(__dirname + "/public"));
 
-
-function dothething() {
-  timesUpdated += 1
-  io.sockets.emit("update", number);
-  console.clear()
-  console.log("updated.. [" + timesUpdated + "]")
-}
-
-setInterval(function() {
-  number = timesUpdated
-}, 1)
-
-setInterval(function() {
-  dothething()
-}, 1000)
-
-io.on("connect", function(socket) {
-  dothething()
-})
-
-
-server.listen(port, function() {
-  console.clear()
-  console.log("🟢 " + port);
+app.get("/", (req, res) => {
+  res.render("index.html");
 });
 
-let posi = []
-
-io.on("move", function(pos) {
-  posi.push(pos)
-  io.emit("sus", posi)
-  for (let i = 0; i < posi.length; i++) {
-    posi.splice(i, 1)
+let bodies = {};
+// Define a connection event for Socket.io
+io.on('connection', (socket) => {
+  console.log('A user connected');
+  bodies[socket.id] = {
+    x: 0,
+    y: 0
   }
-})
+
+  socket.on('updateBody', (data) => {
+    bodies[socket.id].x = data.x;
+    bodies[socket.id].y = data.y;
+  })
+  
+  // Handle a disconnect event
+  socket.on('disconnect', () => {
+    delete bodies[socket.id];
+    console.log('A user disconnected');
+  });
+});
+
+// Start the server
+const port = 3000;
+server.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
+
+const frameRate = 30;
+setInterval(() => {
+  io.emit("bodies", bodies);
+}, 1000 / frameRate);

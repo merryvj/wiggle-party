@@ -3,6 +3,8 @@ let socket, video, poseNet;
 let bodies = {}; //from other visitors
 let body = {}
 let points = [];
+let words = "hello this is a dispatch"
+let chars = words.split("").reverse();
 
 function setup() {
   //setup socket
@@ -91,7 +93,7 @@ function drawOthers() {
 
 function drawTrail() {
   if (points.length == 0) {
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 20; i++) {
       points.push({ x: 0, y: 0});
     }
   }
@@ -104,12 +106,17 @@ function drawTrail() {
   
   points[points.length - 1] = { x: body.x, y: body.y };
   
+  let currChar = 0;
   for (let i = 0; i < points.length; i++) {
     const c = floor(map(i, 0, points.length -1, 255, 100));
-    const diameter = floor(map(i, 0, points.length - 1, 0, 50));
+    const diameter = floor(map(i, 0, points.length - 1, 10, 50));
     
     noStroke();
     fill(c);
-    ellipse(points[i].x * width, points[i].y * height, diameter, diameter);
+    //ellipse(points[i].x * width, points[i].y * height, diameter, diameter);
+    textSize(diameter);
+    text(chars[currChar], points[i].x * width, points[i].y * height);
+    currChar++;
+    if (currChar == chars.length - 1) currChar = 0;
   }
 }

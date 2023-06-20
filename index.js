@@ -24,13 +24,15 @@ io.on('connection', (socket) => {
   bodies[socket.id] = {
     x: 0,
     y: 0,
-    points: []
+    points: [],
+    chars:[]
   }
 
   socket.on('updateBody', (data) => {
     bodies[socket.id].x = data.x;
     bodies[socket.id].y = data.y;
     bodies[socket.id].points = data.points;
+    bodies[socket.id].chars = data.chars;
   })
   
   // Handle a disconnect event
@@ -41,9 +43,9 @@ io.on('connection', (socket) => {
 });
 
 // Start the server
-const port = 3000;
+const port = 4000;
 server.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on https://localhost:${port}`);
 });
 
 const frameRate = 30;

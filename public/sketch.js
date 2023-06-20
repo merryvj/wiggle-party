@@ -1,8 +1,12 @@
 let socket, video, poseNet, speechMic;
 
 let bodies = {}; //from other visitors
-let body = {}
-let points = [];
+let body = {
+  x: 0,
+  y: 0,
+  points: [],
+  chars: []
+}
 let isLoaded = false;
 
 function setup() {
@@ -24,6 +28,7 @@ function setup() {
   setupModel();
 
   video.hide();
+
 }
 
 function draw() {
@@ -36,7 +41,21 @@ function draw() {
     text("Listening for words...", width/2, height/2);
   }
   
-  drawOthers();
+
+  if(isLoaded) {
+    if(body.points.length == 0) {
+      for (let i = 0; i < body.chars.length; i++) {
+        body.points.push({ x: 0, y: 0});
+      }
+    }
+
+    for (let i = 0; i < body.points.length - 1; i++) {
+      body.points[i] = body.points[i + 1];
+    }
+    body.points[body.points.length - 1] = { x: body.x, y: body.y };
+
+    drawOthers();
+  }
 }
 
 function setupSocket() {
@@ -50,11 +69,15 @@ function setupSocket() {
 function setupMic() {
   let lang = navigator.language || 'en-US';
   speechMic = new p5.SpeechRec(lang, gotSpeech);
+  //speechMic.continuous = true;
   speechMic.start();
+  body.chars = [];
 
   function gotSpeech() {
-    console.log("hi");
-    body.chars = speechMic.resultString.split("").reverse();
+    let detected = speechMic.resultString.split("").reverse();
+    if(detected.length == 0) return;
+    body.chars = detected;
+    //body.chars = speechMic.resultString.split(" ");
     isLoaded = true;
   }
 }
@@ -82,7 +105,7 @@ function setupModel() {
         body = {
           x: nosePoint.position.x / width,
           y: nosePoint.position.y / height,
-          points: points,
+          points: body.points,
           chars: body.chars,
         }
 
@@ -92,7 +115,6 @@ function setupModel() {
           points: body.points,
           chars: body.chars
         });
-
       }
     }
   });
@@ -104,37 +126,25 @@ function modelReady() {
 
 
 function drawOthers() {
-  for (const id in bodies) {
-    let other = bodies[id];
-    drawTrail(other.points);
+  for (let id in bodies) {
+    drawTrail(bodies[id]);
   }
 }
 
-function drawTrail() {
-  if (!isLoaded) return;
-  if (points.length == 0) {
-    for (let i = 0; i < body.chars.length; i++) {
-      points.push({ x: 0, y: 0});
-    }
-  }
+function drawTrail(b) {
 
-  
-  for (let i = 0; i < points.length - 1; i++) {
-    points[i] = points[i + 1];
-  }
-  
   let currChar = 0;
-  points[points.length - 1] = { x: body.x, y: body.y };
-
-  for (let i = 0; i < points.length; i++) {
-    const c = floor(map(i, 0, points.length -1, 255, 100));
-    const diameter = floor(map(i, 0, points.length - 1, 30, 50));
+ 
+  for (let i = 0; i < b.points.length; i++) {
+    const c = floor(map(i, 0, b.points.length -1, 255, 100));
+    const diameter = floor(map(i, 0, b.points.length - 1, 30, 50));
     
     noStroke();
     fill(c);
     //ellipse(points[i].x * width, points[i].y * height, diameter, diameter);
     textSize(diameter);
-    text(body.chars[currChar], points[i].x * width, points[i].y* height);
+    text(b.chars[currChar], (b.points[i].x - i*0.03) * width, b.points[i].y* height);
     currChar++; 
   }
+
 }

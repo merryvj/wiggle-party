@@ -69,7 +69,7 @@ function setupSocket() {
 function setupMic() {
   let lang = navigator.language || 'en-US';
   speechMic = new p5.SpeechRec(lang, gotSpeech);
-  //speechMic.continuous = true;
+  speechMic.continuous = true;
   speechMic.start();
   body.chars = [];
 
@@ -141,9 +141,10 @@ function drawTrail(b) {
     
     noStroke();
     fill(c);
-    //ellipse(points[i].x * width, points[i].y * height, diameter, diameter);
     textSize(diameter);
-    text(b.chars[currChar], (b.points[i].x - i*0.03) * width, b.points[i].y* height);
+    let x = (b.points[i].x - i*0.02) * width;
+    let y = (b.points[i].y) * height;
+    text(b.chars[currChar], x, y);
     currChar++; 
   }
 

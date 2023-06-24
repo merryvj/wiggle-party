@@ -1,4 +1,4 @@
-let socket, video, poseNet, speechMic, speaker;
+let socket, video, poseNet, speechMic, ambientMic, speaker;
 let bgShader;
 
 //assign a sound for person
@@ -92,7 +92,8 @@ function setupSocket() {
 
 
 function setupMic() {
-  speaker = new p5.Speech();
+  ambientMic = new p5.AudioIn();
+  ambientMic.start();
 
   let lang = navigator.language || 'en-US';
   speechMic = new p5.SpeechRec(lang, gotSpeech);
@@ -110,7 +111,7 @@ function setupMic() {
     //fade out text after amount of time based on text length
     setTimeout(() => {
       body.chars = "";
-    }, 500 * body.chars.length)
+    }, 1000 + 500 * body.chars.length)
   }
 }
 function setupModel() {
@@ -208,17 +209,31 @@ function playSynth() {
 
 function drawTrail(b) {
 
+  //set textcolor based on mic volume
+  let vol = ambientMic.getLevel();
+  let min_threshold = 0.035;
+  let max_threshold = 0.08;
+
+  //threshold for text vs. silence
+  if (vol < min_threshold) vol = 0
+  else if (vol > max_threshold) vol = max_threshold;
+
+  let c = map(vol, 0, max_threshold, 150, 250);
+
   if (b.chars.length == 0) {
     console.log("nothing!")
-    fill(255);
-    circle(b.x * width, b.y * height, 20);
+    
+    
+    let size = map(vol, 0, max_threshold, 20, 50);
+    fill(c);
+    circle(b.x * width, b.y * height, size);
     return;
   }
 
   let currChar = 0;
  
   for (let i = 0; i < b.points.length; i++) {
-    const c = floor(map(i, 0, b.points.length -1, 255, 100));
+    //const c = floor(map(i, 0, b.points.length -1, 255, 100));
     const diameter = floor(map(i, 0, b.points.length - 1, 30, 50));
     
     noStroke();

@@ -1,13 +1,28 @@
-let socket, video, poseNet, speechMic;
+let socket, video, poseNet, speechMic, speaker;
+let bgShader;
 
+//assign a sound for person
+//then for each pair, check their locations
+//depending on how close they are, alter the volume of their sounds
+
+let synth = new Tone.Synth().toMaster();
 let bodies = {}; //from other visitors
 let body = {
   x: 0,
   y: 0,
   points: [],
-  chars: []
+  chars: [],
+  synth: null
 }
+
+console.log(body);
+let notes = ['A4', 'B4', 'C4', 'D4', 'E4', 'F4', 'G4']
+
 let isLoaded = false;
+
+function preload() {
+  bgShader = loadShader('bg.vert', 'bg.frag');
+}
 
 function setup() {
   //setup socket
@@ -24,18 +39,25 @@ function setup() {
   video = createCapture(VIDEO);
   video.size(width, height);
 
+
   //setup pose detection
   setupModel();
 
   video.hide();
+  
 
 }
 
 function draw() {
-  background(150);
+  // shader(bgShader);
+  // bgShader.setUniform("u_resolution", [width, height]);
+  // bgShader.setUniform("u_time", millis() / 1000.0);
+  // bgShader.setUniform("u_mouse", [mouseX, map(mouseY, 0, height, height, 0)]);
+  // rect(0,0,width,height);
 
+  background(0, 50);
   if(!isLoaded) {
-    fill(80);
+    fill(150);
     textSize(42);
     textAlign(CENTER);
     text("Listening for words...", width/2, height/2);
@@ -55,8 +77,10 @@ function draw() {
     body.points[body.points.length - 1] = { x: body.x, y: body.y };
 
     drawOthers();
+    playSynth();
   }
 }
+
 
 function setupSocket() {
   socket = io();
@@ -66,7 +90,10 @@ function setupSocket() {
   });
 }
 
+
 function setupMic() {
+  speaker = new p5.Speech();
+
   let lang = navigator.language || 'en-US';
   speechMic = new p5.SpeechRec(lang, gotSpeech);
   speechMic.continuous = true;
@@ -79,6 +106,11 @@ function setupMic() {
     body.chars = detected;
     //body.chars = speechMic.resultString.split(" ");
     isLoaded = true;
+
+    //fade out text after amount of time based on text length
+    setTimeout(() => {
+      body.chars = "";
+    }, 500 * body.chars.length)
   }
 }
 function setupModel() {
@@ -107,13 +139,15 @@ function setupModel() {
           y: nosePoint.position.y / height,
           points: body.points,
           chars: body.chars,
+          synth: body.synth
         }
 
         socket.emit("updateBody", {
           x: body.x,
           y: body.y,
           points: body.points,
-          chars: body.chars
+          chars: body.chars,
+          synth: body.synth
         });
       }
     }
@@ -131,7 +165,55 @@ function drawOthers() {
   }
 }
 
+function getAvg(array) {
+  return array.reduce((a, b) => a + b) / array.length;
+} 
+
+
+function playSynth() {
+  if(bodies.length == 0 || !body.x) return;
+  
+
+  let posVals = [];
+
+  for (let id in bodies) {
+    posVals.push({x: bodies[id].x, y: bodies[id].y});
+  }
+  
+  let arr = posVals.map((p) => p.x);
+  let avgXVal = getAvg(arr);
+  //change note based on tracking position
+  // let noteIndex = round(map(avgXVal, 0, 1, 0, 6));
+  // let note = notes[noteIndex];
+  // synth.triggerAttack(note);
+
+  //change volume based on closeness of bodies
+
+  let avgDiff = 0;
+  if (posVals.length === 1) {
+    avgDiff = abs(posVals[0].x - 0.5);
+  } else {
+    let diffs = [];
+    for(let i = 0; i < posVals.length - 1; i++) {
+      let xDiff = abs(posVals[i].x - posVals[i + 1].x);
+      let yDiff = abs(posVals[i].y - posVals[i + 1].y);
+      diffs.push(xDiff);
+      avgDiff = getAvg(diffs);
+  }
+  }
+
+  let newVol = map(avgDiff, 0, 1, 200, 10)
+  synth.freq = newVol;
+}
+
 function drawTrail(b) {
+
+  if (b.chars.length == 0) {
+    console.log("nothing!")
+    fill(255);
+    circle(b.x * width, b.y * height, 20);
+    return;
+  }
 
   let currChar = 0;
  

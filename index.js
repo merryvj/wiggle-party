@@ -33,6 +33,7 @@ io.on('connection', (socket) => {
     bodies[socket.id].y = data.y;
     bodies[socket.id].points = data.points;
     bodies[socket.id].chars = data.chars;
+    bodies[socket.id].synth = data.synth;
   })
   
   // Handle a disconnect event

@@ -55,7 +55,7 @@ function draw() {
   // bgShader.setUniform("u_mouse", [mouseX, map(mouseY, 0, height, height, 0)]);
   // rect(0,0,width,height);
 
-  background(0, 50);
+  background(5);
   if(!isLoaded) {
     fill(150);
     textSize(42);
@@ -102,7 +102,7 @@ function setupMic() {
   body.chars = [];
 
   function gotSpeech() {
-    let detected = speechMic.resultString.split("").reverse();
+    let detected = speechMic.resultString.split("");
     if(detected.length == 0) return;
     body.chars = detected;
     //body.chars = speechMic.resultString.split(" ");
@@ -218,29 +218,34 @@ function drawTrail(b) {
   if (vol < min_threshold) vol = 0
   else if (vol > max_threshold) vol = max_threshold;
 
-  let c = map(vol, 0, max_threshold, 150, 250);
+  let c = map(vol, 0, max_threshold, 120, 250);
 
   if (b.chars.length == 0) {
     console.log("nothing!")
     
     
-    let size = map(vol, 0, max_threshold, 20, 50);
+    let size = map(vol, 0, max_threshold, 20, 40);
     fill(c);
     circle(b.x * width, b.y * height, size);
     return;
   }
 
   let currChar = 0;
+
+  //calculate numLines
+  let maxLineWidth = 20;
  
   for (let i = 0; i < b.points.length; i++) {
     //const c = floor(map(i, 0, b.points.length -1, 255, 100));
-    const diameter = floor(map(i, 0, b.points.length - 1, 30, 50));
+    //const diameter = floor(map(i, 0, b.points.length - 1, 30, 50));
     
     noStroke();
     fill(c);
-    textSize(diameter);
-    let x = (b.points[i].x - i*0.02) * width;
-    let y = (b.points[i].y) * height;
+    //textSize(diameter);
+    let line = floor(i / maxLineWidth);
+    let x = (b.points[i].x + (i % maxLineWidth)*0.03) * width;
+    let y = (b.points[i].y + line * 0.04) * height;
+    console.log(x, y);
     text(b.chars[currChar], x, y);
     currChar++; 
   }

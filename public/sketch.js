@@ -233,8 +233,6 @@ function playSynth() {
   }
   }
 
-  let newVol = map(avgDiff, 0, 1, 200, 10)
-  synth.freq = newVol;
 }
 
 function drawTrail(b) {
@@ -249,14 +247,8 @@ function drawTrail(b) {
   else if (vol > max_threshold) vol = max_threshold;
 
   c = map(vol, 0, max_threshold, 120, 250);
-
-  if (b.chars.length == 0) {    
-    b.size = map(vol, 0, max_threshold, 0.02, 0.08);
-    fill(c);
-    //circle(b.x * width, b.y * height, size);
-    return;
-  }
-
+  b.size = map(vol, 0, max_threshold, 0.02, 0.08);
+  
   let currChar = 0;
 
   //calculate numLines

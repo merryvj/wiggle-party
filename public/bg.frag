@@ -6,8 +6,11 @@ precision mediump float;
 #endif
 
 uniform vec2 u_resolution;
-uniform vec2 u_mouse;
 uniform float u_time;
+uniform vec2 point1;
+uniform vec2 point2;
+uniform float radius1;
+uniform float radius2;
 
 float rand2D(in vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
@@ -47,12 +50,20 @@ vec3 cosPalette( float t , vec3 brightness, vec3 contrast, vec3 osc, vec3 phase)
 void main() {
     vec2 st = gl_FragCoord.xy/u_resolution.xy;
     st.x *= u_resolution.x/u_resolution.y;
-    
-    vec3 col = cosPalette(st.x * 0.3 * cos(u_time), vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1.0,1.0,1.0),vec3(0.0,0.33,0.67) );
-    vec3 color = vec3(body(st, u_mouse / u_resolution.x, 0.1 + noise(st * 500. + u_time) * 0.1, rand2D(st))) * col;
-    color += body(st, u_mouse/u_resolution.x, 0.04 + sin(u_time) * 0.01 + rand2D(st) * 0.1, 0.2);
-    //vec3 color = .3 - vec3(circle(st + noise(st + u_time * 0.1), 0.300)) * col;
-    
 
+    vec2 p1 = point1;
+    vec2 p2 = point2;
+
+    p1 *= vec2(2.0);
+    p2 *= vec2(2.0);
+
+    p1.x *= u_resolution.x/u_resolution.y;
+    p2.x *= u_resolution.x/u_resolution.y;
+
+    vec3 col = cosPalette(st.x * 0.3 * cos(u_time), vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1.0,1.0,1.0),vec3(0.0,0.33,0.67) );
+    vec3 color = vec3(0);
+    color += body(st, p1, radius1 + rand2D(st) * 0.1, 0.2) * col;
+    color += body(st, p2, radius2 + rand2D(st) * 0.1 , 0.2) * col;
+    
     gl_FragColor = vec4(color,1.0);
 }

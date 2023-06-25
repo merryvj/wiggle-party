@@ -1,5 +1,6 @@
 let socket, video, poseNet, speechMic, ambientMic, speaker;
-let bgShader;
+let bgShader, bgBuffer;
+
 
 //assign a sound for person
 //then for each pair, check their locations
@@ -12,10 +13,10 @@ let body = {
   y: 0,
   points: [],
   chars: [],
-  synth: null
+  synth: null,
+  size: 0.02
 }
 
-console.log(body);
 let notes = ['A4', 'B4', 'C4', 'D4', 'E4', 'F4', 'G4']
 
 let isLoaded = false;
@@ -33,7 +34,8 @@ function setup() {
 
   //setup canvas
   createCanvas(window.innerWidth, window.innerHeight);
-  background(150);
+  bgBuffer = createGraphics(window.innerWidth, window.innerHeight, WEBGL);
+  bgBuffer.bgShader = bgShader;
 
   //start video capture
   video = createCapture(VIDEO);
@@ -49,11 +51,7 @@ function setup() {
 }
 
 function draw() {
-  // shader(bgShader);
-  // bgShader.setUniform("u_resolution", [width, height]);
-  // bgShader.setUniform("u_time", millis() / 1000.0);
-  // bgShader.setUniform("u_mouse", [mouseX, map(mouseY, 0, height, height, 0)]);
-  // rect(0,0,width,height);
+  
 
   background(5);
   if(!isLoaded) {
@@ -76,12 +74,42 @@ function draw() {
     }
     body.points[body.points.length - 1] = { x: body.x, y: body.y };
 
+    drawShader();
     drawOthers();
     playSynth();
+
   }
 }
 
+let pointNum;
+function drawShader() {
+  bgBuffer.clear();
+  bgBuffer.reset();
+  bgBuffer.push();
+  bgBuffer.shader(bgShader);
+  bgBuffer.bgShader.setUniform("u_resolution", [width, height]);
+  bgBuffer.bgShader.setUniform("u_time", millis() / 1000.0);
+  
+  //check if second body exists
+  pointNum = 1;
+  for (let id in bodies) {
+    let b = bodies[id];
+    bgBuffer.bgShader.setUniform(`point${pointNum}`, [b.x, map(b.y, 0, 1, 1, 0)]);
+    bgBuffer.bgShader.setUniform(`radius${pointNum}`, b.size);
 
+    pointNum++;
+  }
+
+  bgBuffer.rectMode(CENTER);
+  bgBuffer.rect(0,0,100,200);
+  bgBuffer.rect(200,300,100,100);
+  bgBuffer.pop();
+  clear();
+  push();
+  image(bgBuffer, 0, 0);
+  pop();
+
+}
 function setupSocket() {
   socket = io();
   socket.on("bodies", (data) => {
@@ -140,7 +168,8 @@ function setupModel() {
           y: nosePoint.position.y / height,
           points: body.points,
           chars: body.chars,
-          synth: body.synth
+          synth: body.synth,
+          size: body.size
         }
 
         socket.emit("updateBody", {
@@ -148,7 +177,8 @@ function setupModel() {
           y: body.y,
           points: body.points,
           chars: body.chars,
-          synth: body.synth
+          synth: body.synth,
+          size: body.size
         });
       }
     }
@@ -211,22 +241,19 @@ function drawTrail(b) {
 
   //set textcolor based on mic volume
   let vol = ambientMic.getLevel();
-  let min_threshold = 0.035;
+  let min_threshold = 0.015;
   let max_threshold = 0.08;
 
   //threshold for text vs. silence
   if (vol < min_threshold) vol = 0
   else if (vol > max_threshold) vol = max_threshold;
 
-  let c = map(vol, 0, max_threshold, 120, 250);
+  c = map(vol, 0, max_threshold, 120, 250);
 
-  if (b.chars.length == 0) {
-    console.log("nothing!")
-    
-    
-    let size = map(vol, 0, max_threshold, 20, 40);
+  if (b.chars.length == 0) {    
+    b.size = map(vol, 0, max_threshold, 0.02, 0.08);
     fill(c);
-    circle(b.x * width, b.y * height, size);
+    //circle(b.x * width, b.y * height, size);
     return;
   }
 
@@ -245,8 +272,7 @@ function drawTrail(b) {
     let line = floor(i / maxLineWidth);
     let x = (b.points[i].x + (i % maxLineWidth)*0.03) * width;
     let y = (b.points[i].y + line * 0.04) * height;
-    console.log(x, y);
-    text(b.chars[currChar], x, y);
+    //text(b.chars[currChar], x, y);
     currChar++; 
   }
 

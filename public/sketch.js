@@ -1,12 +1,7 @@
-let socket, video, poseNet, speechMic, ambientMic, speaker;
+let socket, video, poseNet, speechMic, ambientMic, speaker, synth;
 let bgShader, bgBuffer;
+let instructions = "speak? or move?";
 
-
-//assign a sound for person
-//then for each pair, check their locations
-//depending on how close they are, alter the volume of their sounds
-
-let synth;
 let bodies = {}; //from other visitors
 let body = {
   x: 0,
@@ -26,10 +21,7 @@ function preload() {
 }
 
 function setup() {
-  //setup socket
   setupSocket();
-  
-  //setupMic
   setupMic();
 
   //setup canvas
@@ -40,29 +32,17 @@ function setup() {
   //start video capture
   video = createCapture(VIDEO);
   video.size(width, height);
+  video.hide();
 
-  //setup pose detection
-  setupModel();
-
+  //set up synth
   synth = new p5.MonoSynth();
   synth.triggerAttack();
   synth.amp(0, 0);
 
-  video.hide();
-
+  setupModel();
 }
 
 function draw() {
-  
-
-  background(5);
-  if(!isLoaded) {
-    fill(150);
-    textSize(42);
-    textAlign(CENTER);
-    text("Listening for words...", width/2, height/2);
-  }
-  
 
   if(isLoaded) {
     if(body.points.length == 0) {
@@ -77,9 +57,22 @@ function draw() {
     body.points[body.points.length - 1] = { x: body.x, y: body.y };
 
     drawShader();
+    drawText();
     drawOthers();
-
   }
+}
+
+function drawText() {
+  push();
+  fill(150);
+  textSize(24);
+  textAlign(CENTER);
+  text(instructions, width/2, height-50);
+
+  if (body.chars.length > 0) {
+    instructions = "";
+  }
+  pop();
 }
 
 let pointNum;
@@ -91,7 +84,6 @@ function drawShader() {
   bgBuffer.bgShader.setUniform("u_resolution", [width, height]);
   bgBuffer.bgShader.setUniform("u_time", millis() / 1000.0);
   
-  //check if second body exists
   pointNum = 1;
   for (let id in bodies) {
     let b = bodies[id];
@@ -109,13 +101,13 @@ function drawShader() {
   push();
   image(bgBuffer, 0, 0);
   pop();
-
 }
+
 function setupSocket() {
   socket = io();
   socket.on("bodies", (data) => {
     bodies = data;
-    
+    isLoaded = true;
   });
 }
 
@@ -133,12 +125,20 @@ function setupMic() {
     let detected = speechMic.resultString.split("");
     if(detected.length == 0) return;
     body.chars = detected;
-    isLoaded = true;
+    console.log("sdfsdf")
 
-    //fade out text after amount of time based on text length
     setTimeout(() => {
       body.chars = "";
+      // let clearText = setInterval(() => {
+      // body.chars.shift(), 500});
+
+      // setTimeout(() => {
+      //   clearInterval(clearText);
+      // }, 5000)
     }, 1000 + 500 * body.chars.length)
+
+    
+
   }
 }
 function setupModel() {
@@ -201,12 +201,6 @@ function getAvg(array) {
 } 
 
 
-// function playSynth(b) {
-//   if(b.synth == null) return;
-//   console.log(b.synth);
-//   let noteIndex = round(map(b.x, 0, 1, 0, 6));
-//   body.synth.play(notes[noteIndex], 1, 0, 1.5);
-// }
 function playSynth() {
 
   if(bodies.length == 0 || !body.x) return;
@@ -250,7 +244,7 @@ function drawTrail(b) {
   else if (vol > max_threshold) vol = max_threshold;
   b.size = map(vol, 0, max_threshold, 0.02, 0.1);
   
-  for (let i = 0; i < b.chars.length; i++) {
+  for (let i = 0; i < b.points.length; i++) {
     let numVertices = b.chars.length;
     let spacing = 360 / numVertices;
     let angle = spacing * i - 135;
@@ -259,10 +253,10 @@ function drawTrail(b) {
     let y = sin(radians(angle)) * padding + b.points[i].y * height;
 
     //generate random colors for text
-    let c = map(i, 0, numVertices - 1, 180, 100);
+    let c = map(i, 0, numVertices - 1, 220, 150);
     fill(c * b.x, c * b.y, c * b.x);
 
-
+    //draw text
     textSize(map(i, 0, numVertices, padding / 2, padding/4));
     text(b.chars[i], x, y);
   }

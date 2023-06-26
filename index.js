@@ -22,8 +22,8 @@ let bodies = {};
 io.on('connection', (socket) => {
   console.log('A user connected');
   bodies[socket.id] = {
-    x: 0,
-    y: 0,
+    x: 0.5,
+    y: 0.5,
     points: [],
     chars:[],
     synth: null,

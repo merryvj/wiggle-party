@@ -133,7 +133,6 @@ function setupMic() {
     let detected = speechMic.resultString.split("");
     if(detected.length == 0) return;
     body.chars = detected;
-    //body.chars = speechMic.resultString.split(" ");
     isLoaded = true;
 
     //fade out text after amount of time based on text length
@@ -255,17 +254,28 @@ function drawTrail(b) {
   let maxLineWidth = 20;
  
   for (let i = 0; i < b.points.length; i++) {
-    //const c = floor(map(i, 0, b.points.length -1, 255, 100));
-    //const diameter = floor(map(i, 0, b.points.length - 1, 30, 50));
-    
-    noStroke();
+    let numVertices = b.points.length;
+    let spacing = 360 / numVertices;
+    let angle = spacing * i - 135;
+    let padding = 30 + numVertices + (b.size * 200);
+    let x = cos(radians(angle)) * padding + b.points[i].x * width;
+    let y = sin(radians(angle)) * padding + b.points[i].y * height;
+    let c = map(i, 0, numVertices - 1, 200, 120);
     fill(c);
-    //textSize(diameter);
-    let line = floor(i / maxLineWidth);
-    let x = (b.points[i].x + (i % maxLineWidth)*0.03) * width;
-    let y = (b.points[i].y + line * 0.04) * height;
-    //text(b.chars[currChar], x, y);
-    currChar++; 
+    textSize(map(i, 0, numVertices, padding / 3, padding/5));
+    text(b.chars[i], x, y);
+
+    // //const c = floor(map(i, 0, b.points.length -1, 255, 100));
+    // //const diameter = floor(map(i, 0, b.points.length - 1, 30, 50));
+    
+    // noStroke();
+    // fill(c);
+    // //textSize(diameter);
+    // let line = floor(i / maxLineWidth);
+    // let x = (b.points[i].x + (i % maxLineWidth)*0.03) * width;
+    // let y = (b.points[i].y + line * 0.04) * height;
+    // text(b.chars[currChar], x, y);
+    // currChar++; 
   }
 
 }

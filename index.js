@@ -26,6 +26,7 @@ io.on('connection', (socket) => {
     y: 0,
     points: [],
     chars:[],
+    synth: null,
     size: 0.02,
   }
 

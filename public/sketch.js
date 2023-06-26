@@ -6,7 +6,7 @@ let bgShader, bgBuffer;
 //then for each pair, check their locations
 //depending on how close they are, alter the volume of their sounds
 
-let synth = new Tone.Synth().toMaster();
+let synth;
 let bodies = {}; //from other visitors
 let body = {
   x: 0,
@@ -14,7 +14,7 @@ let body = {
   points: [],
   chars: [],
   synth: null,
-  size: 0.02
+  size: 0.02,
 }
 
 let notes = ['A4', 'B4', 'C4', 'D4', 'E4', 'F4', 'G4']
@@ -41,12 +41,14 @@ function setup() {
   video = createCapture(VIDEO);
   video.size(width, height);
 
-
   //setup pose detection
   setupModel();
 
+  synth = new p5.MonoSynth();
+  synth.triggerAttack();
+  synth.amp(0, 0);
+
   video.hide();
-  
 
 }
 
@@ -76,7 +78,6 @@ function draw() {
 
     drawShader();
     drawOthers();
-    playSynth();
 
   }
 }
@@ -117,7 +118,6 @@ function setupSocket() {
     
   });
 }
-
 
 function setupMic() {
   ambientMic = new p5.AudioIn();
@@ -161,7 +161,7 @@ function setupModel() {
     let check = results[0].pose.score;
     if (check) {
       let nosePoint = results[0].pose.keypoints[0];
-      if (nosePoint.score > 0.6) {
+      if (nosePoint.score > 0.5) {
         body = {
           x: nosePoint.position.x / width,
           y: nosePoint.position.y / height,
@@ -192,6 +192,7 @@ function modelReady() {
 function drawOthers() {
   for (let id in bodies) {
     drawTrail(bodies[id]);
+    playSynth(bodies[id]);
   }
 }
 
@@ -200,10 +201,16 @@ function getAvg(array) {
 } 
 
 
+// function playSynth(b) {
+//   if(b.synth == null) return;
+//   console.log(b.synth);
+//   let noteIndex = round(map(b.x, 0, 1, 0, 6));
+//   body.synth.play(notes[noteIndex], 1, 0, 1.5);
+// }
 function playSynth() {
+
   if(bodies.length == 0 || !body.x) return;
   
-
   let posVals = [];
 
   for (let id in bodies) {
@@ -212,70 +219,52 @@ function playSynth() {
   
   let arr = posVals.map((p) => p.x);
   let avgXVal = getAvg(arr);
+
   //change note based on tracking position
-  // let noteIndex = round(map(avgXVal, 0, 1, 0, 6));
-  // let note = notes[noteIndex];
-  // synth.triggerAttack(note);
+  let noteIndex = round(map(avgXVal, 0, 1, 0, 6));
+  let note = notes[noteIndex];
 
   //change volume based on closeness of bodies
-
-  let avgDiff = 0;
   if (posVals.length === 1) {
-    avgDiff = abs(posVals[0].x - 0.5);
-  } else {
-    let diffs = [];
-    for(let i = 0; i < posVals.length - 1; i++) {
-      let xDiff = abs(posVals[i].x - posVals[i + 1].x);
-      let yDiff = abs(posVals[i].y - posVals[i + 1].y);
-      diffs.push(xDiff);
-      avgDiff = getAvg(diffs);
-  }
-  }
+   posVals.push({x: 0.5, y: 0.5})
+  } 
+  let xDiff = sq(posVals[0].x - posVals[1].x);
+  let yDiff = sq(posVals[0].y - posVals[1].y);
+  
+  let avgDiff = sqrt(xDiff + yDiff);
 
+  let newAmp = map(avgDiff, 0, 0.6, 1, 0);
+  synth.amp(newAmp, 0);
+  synth.play(note);
 }
 
 function drawTrail(b) {
 
-  //set textcolor based on mic volume
+  //set size of body based on mic volume
   let vol = ambientMic.getLevel();
-  let min_threshold = 0.015;
-  let max_threshold = 0.08;
+  let min_threshold = 0.035;
+  let max_threshold = 0.1;
 
   //threshold for text vs. silence
   if (vol < min_threshold) vol = 0
   else if (vol > max_threshold) vol = max_threshold;
-
-  c = map(vol, 0, max_threshold, 120, 250);
-  b.size = map(vol, 0, max_threshold, 0.02, 0.08);
+  b.size = map(vol, 0, max_threshold, 0.02, 0.1);
   
-  let currChar = 0;
-
-  //calculate numLines
-  let maxLineWidth = 20;
- 
-  for (let i = 0; i < b.points.length; i++) {
-    let numVertices = b.points.length;
+  for (let i = 0; i < b.chars.length; i++) {
+    let numVertices = b.chars.length;
     let spacing = 360 / numVertices;
     let angle = spacing * i - 135;
     let padding = 30 + numVertices + (b.size * 200);
     let x = cos(radians(angle)) * padding + b.points[i].x * width;
     let y = sin(radians(angle)) * padding + b.points[i].y * height;
-    let c = map(i, 0, numVertices - 1, 200, 120);
-    fill(c);
-    textSize(map(i, 0, numVertices, padding / 3, padding/5));
-    text(b.chars[i], x, y);
 
-    // //const c = floor(map(i, 0, b.points.length -1, 255, 100));
-    // //const diameter = floor(map(i, 0, b.points.length - 1, 30, 50));
-    
-    // noStroke();
-    // fill(c);
-    // //textSize(diameter);
-    // let line = floor(i / maxLineWidth);
-    // let x = (b.points[i].x + (i % maxLineWidth)*0.03) * width;
-    // let y = (b.points[i].y + line * 0.04) * height;
-    // text(b.chars[currChar], x, y);
-    // currChar++; 
+    //generate random colors for text
+    let c = map(i, 0, numVertices - 1, 180, 100);
+    fill(c * b.x, c * b.y, c * b.x);
+
+
+    textSize(map(i, 0, numVertices, padding / 2, padding/4));
+    text(b.chars[i], x, y);
   }
 
 }

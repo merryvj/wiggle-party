@@ -9,7 +9,7 @@ let body = {
   points: [],
   chars: [],
   synth: null,
-  size: 0.02,
+  size: 0.04,
 }
 
 let notes = ['A4', 'B4', 'C4', 'D4', 'E4', 'F4', 'G4']
@@ -43,6 +43,7 @@ function setup() {
 }
 
 function draw() {
+  background(0, 50);
 
   if(isLoaded) {
     if(body.points.length == 0) {
@@ -240,15 +241,18 @@ function drawTrail(b) {
   let max_threshold = 0.1;
 
   //threshold for text vs. silence
+  console.log(vol);
   if (vol < min_threshold) vol = 0
   else if (vol > max_threshold) vol = max_threshold;
-  b.size = map(vol, 0, max_threshold, 0.02, 0.1);
+  b.size = map(vol, 0, max_threshold, 0.04, 0.08);
+
+  //drawBody(b);
   
   for (let i = 0; i < b.points.length; i++) {
     let numVertices = b.chars.length;
     let spacing = 360 / numVertices;
     let angle = spacing * i - 135;
-    let padding = 30 + numVertices + (b.size * 200);
+    let padding = 30 + numVertices + (b.size);
     let x = cos(radians(angle)) * padding + b.points[i].x * width;
     let y = sin(radians(angle)) * padding + b.points[i].y * height;
 
@@ -260,5 +264,8 @@ function drawTrail(b) {
     textSize(map(i, 0, numVertices, padding / 2, padding/4));
     text(b.chars[i], x, y);
   }
+}
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }

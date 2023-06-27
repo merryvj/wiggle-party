@@ -28,15 +28,12 @@ io.on('connection', (socket) => {
     chars:[],
     synth: null,
     size: 0.02,
+    sentiment: 0.5,
   }
 
   socket.on('updateBody', (data) => {
-    bodies[socket.id].x = data.x;
-    bodies[socket.id].y = data.y;
-    bodies[socket.id].points = data.points;
-    bodies[socket.id].chars = data.chars;
-    bodies[socket.id].synth = data.synth;
-    bodies[socket.id].size = data.size;
+    bodies[socket.id] = data;
+    
   })
   
   // Handle a disconnect event

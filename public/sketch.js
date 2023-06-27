@@ -1,7 +1,6 @@
 let socket, video, poseNet, speechMic, ambientMic, speaker, synth;
 let bgShader, bgBuffer;
 let instructions = "speak? or move?";
-let sentiment, prediction = 0.5;
 
 
 let bodies = {}; //from other visitors
@@ -16,6 +15,7 @@ let body = {
   chars: [],
   synth: null,
   size: 0.04,
+  sentiment: 0.5,
 }
 
 let prevBodies = {body};
@@ -51,18 +51,13 @@ function setup() {
 
   setupModel();
 
-
-  setInterval(() => {
-    updateBody();
-  }, 100)
-
-  frameRate(24);
 }
 
 
 function draw() {
-
+  background(0);
   if(isLoaded) {
+    console.log(body.points.length, body.chars.length);
     if(body.points.length == 0) {
       for (let i = 0; i < body.chars.length; i++) {
         body.points.push({ x: 0, y: 0});
@@ -86,18 +81,22 @@ function draw() {
   
    
     drawShader();
-    drawText();
     drawOthers();
   }
+  drawText();
 }
 
 function drawText() {
+  
   push();
   fill(150);
   textSize(24);
   textAlign(CENTER);
-  text(instructions, width/2, height-50);
-
+  if (!isLoaded) {
+    text("please allow webcam and video access <3", width/2, height/2)
+  } else {
+    text(instructions, width/2, height-50);
+  }
   if (body.chars.length > 0) {
     instructions = "";
   }
@@ -117,8 +116,6 @@ function drawShader() {
   pointNum = 1;
   for (let id in bodies) {
     let b = bodies[id];
-    // smoothX = lerp(b.prev.x, b.x, 0.05);
-    // smoothY = lerp(b.prev.y, b.y, 0.05);
     bgBuffer.bgShader.setUniform(`point${pointNum}`, [b.x, map(b.y, 0, 1, 1, 0)]);
     bgBuffer.bgShader.setUniform(`radius${pointNum}`, b.size);
 
@@ -142,7 +139,7 @@ function setupSocket() {
     bodies = data;
     setTimeout(() => {
       isLoaded = true;
-  }, 3000)
+  }, 5000)
     
   });
 }
@@ -162,14 +159,17 @@ function setupMic() {
     if(detected.length == 0) return;
     body.chars = detected;
     let text = speechMic.resultString;
-    prediction = sentiment.predict(text);
-    console.log(prediction);
+    body.sentiment = sentiment.predict(text).score;
+
 
     // setTimeout(() => {
     //   body.chars = "";
     // }, 1000 + 500 * body.chars.length)
-
   }
+
+  setInterval(() => {
+    speechMic.start()
+  }, 10000)
 }
 
 
@@ -197,6 +197,10 @@ function setupModel() {
 
   sentiment = ml5.sentiment('movieReviews', modelReady);
 
+  setInterval(() => {
+    updateBody();
+  }, 100)
+
 }
 
 function processBody(results) {
@@ -212,7 +216,8 @@ function processBody(results) {
       points: body.points,
       chars: body.chars,
       synth: body.synth,
-      size: body.size
+      size: body.size,
+      sentiment: body.sentiment
     }
   }
   
@@ -225,7 +230,8 @@ function updateBody() {
     points: body.points,
     chars: body.chars,
     synth: body.synth,
-    size: body.size
+    size: body.size,
+    sentiment: body.sentiment,
   });
 }
 
@@ -238,7 +244,7 @@ function modelReady() {
 function drawOthers() {
   for (let id in bodies) {
     drawTrail(bodies[id], id);
-    playSynth(bodies[id]);
+    //playSynth(bodies[id]);
   }
 }
 
@@ -302,16 +308,24 @@ function drawTrail(b, id) {
   // fill(100);
   // circle(smoothX * width, smoothY * height, 20);
 
+
   //threshold for text vs. silence
   if (vol < min_threshold) vol = 0
   else if (vol > max_threshold) vol = max_threshold;
   b.size = map(vol, 0, max_threshold, 0.04, 0.08);
+
+
+  //draw eye
+  drawEye((b.x - 0.0132) * width, (b.y - 0.005) * height);
+  drawEye((b.x + 0.0132) * width, (b.y - 0.005) * height);
+  drawMouth(b.x * width, (b.y + 0.01) * height, b.size, b.sentiment);
+  
   
   for (let i = 0; i < b.points.length; i++) {
     let numVertices = b.chars.length;
     let spacing = 360 / numVertices;
     let angle = spacing * i - 135 + textAngleOffset;
-    let padding = 40 + numVertices + (b.size);
+    let padding = 35 + numVertices + (b.size);
     let x = cos(radians(angle)) * padding + b.points[i].x * width;
     let y = sin(radians(angle)) * padding + b.points[i].y * height;
 
@@ -322,10 +336,41 @@ function drawTrail(b, id) {
     //draw text
     textSize(map(i, 0, numVertices, padding / 2, padding/4));
     text(b.chars[i], x, y);
-    textAngleOffset += 0.06;
+    textAngleOffset += 0.03;
   }
 }
 
+
+function drawEye(x, y) {
+  push();
+  noStroke();
+  translate(x, y);
+  // fill(255);
+  // circle(0, 0, 18);
+  fill(180);
+  circle(0, 0, 15);
+  fill(0);
+  circle(0, 1, 10);
+  fill(180);
+  circle(2.2, -2.2, 3.8);
+  pop();
+}
+
+function drawMouth(x, y, size, sentiment) {
+  push();
+  translate(-10, -1);
+  fill(0);
+  stroke(0);
+  let emotion = map(sentiment, 0, 1, -4, 4);
+  if (emotion == 0) emotion = 3;
+  emotion *= map(size, 0.04, 0.08, 1, 6);
+  bezier(x, y, x+5, y+emotion, x+15, y+emotion, x+20, y);
+  pop();
+}
+
+
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  bgBuffer.bgShader.setUniform("u_resolution", [width, height]);
+
 }

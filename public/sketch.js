@@ -65,6 +65,15 @@ function draw() {
       for (let i = 0; i < body.chars.length; i++) {
         body.points.push({ x: 0, y: 0});
       }
+    } else if (body.points.length < body.chars.length) {
+
+      for (let i = body.points.length - 1; i < body.chars.length; i++){
+        body.points.push({ x: 0, y: 0});
+      }
+    } else if (body.points.length > body.chars.length) {
+      for (let i = body.points.length - 1; i > body.chars.length - 1; i--) {
+        body.points.pop();
+      }
     }
 
     for (let i = 0; i < body.points.length - 1; i++) {
@@ -151,9 +160,9 @@ function setupMic() {
     if(detected.length == 0) return;
     body.chars = detected;
 
-    setTimeout(() => {
-      body.chars = "";
-    }, 1000 + 500 * body.chars.length)
+    // setTimeout(() => {
+    //   body.chars = "";
+    // }, 1000 + 500 * body.chars.length)
 
   }
 }
@@ -256,7 +265,7 @@ function playSynth() {
   
   let avgDiff = sqrt(xDiff + yDiff);
 
-  let newAmp = map(avgDiff, 0, 0.6, 1, 0);
+  let newAmp = map(avgDiff, 0, 0.5, 1, 0);
   synth.amp(newAmp, 0);
   synth.play(note);
 }
@@ -266,7 +275,7 @@ let smoothX, smoothY;
 function drawTrail(b, id) {
   //set size of body based on mic volume
   let vol = ambientMic.getLevel();
-  let min_threshold = 0.035;
+  let min_threshold = 0.025;
   let max_threshold = 0.1;
 
   // let prev = prevBodies[id];
@@ -293,7 +302,7 @@ function drawTrail(b, id) {
     let numVertices = b.chars.length;
     let spacing = 360 / numVertices;
     let angle = spacing * i - 135;
-    let padding = 30 + numVertices + (b.size);
+    let padding = 40 + numVertices + (b.size);
     let x = cos(radians(angle)) * padding + b.points[i].x * width;
     let y = sin(radians(angle)) * padding + b.points[i].y * height;
 

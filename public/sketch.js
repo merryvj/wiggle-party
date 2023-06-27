@@ -6,11 +6,19 @@ let bodies = {}; //from other visitors
 let body = {
   x: 0,
   y: 0,
+  prev: {
+    x: 0,
+    y: 0
+  },
   points: [],
   chars: [],
   synth: null,
   size: 0.04,
 }
+
+let prevBodies = {body};
+
+let prevX = 0, prevY = 0;
 
 let notes = ['A4', 'B4', 'C4', 'D4', 'E4', 'F4', 'G4']
 
@@ -40,10 +48,17 @@ function setup() {
   synth.amp(0, 0);
 
   setupModel();
+
+
+  setInterval(() => {
+    updateBody();
+  }, 100)
+
+  frameRate(24);
 }
 
+
 function draw() {
-  background(0, 50);
 
   if(isLoaded) {
     if(body.points.length == 0) {
@@ -57,6 +72,8 @@ function draw() {
     }
     body.points[body.points.length - 1] = { x: body.x, y: body.y };
 
+  
+   
     drawShader();
     drawText();
     drawOthers();
@@ -77,6 +94,7 @@ function drawText() {
 }
 
 let pointNum;
+
 function drawShader() {
   bgBuffer.clear();
   bgBuffer.reset();
@@ -88,6 +106,8 @@ function drawShader() {
   pointNum = 1;
   for (let id in bodies) {
     let b = bodies[id];
+    // smoothX = lerp(b.prev.x, b.x, 0.05);
+    // smoothY = lerp(b.prev.y, b.y, 0.05);
     bgBuffer.bgShader.setUniform(`point${pointNum}`, [b.x, map(b.y, 0, 1, 1, 0)]);
     bgBuffer.bgShader.setUniform(`radius${pointNum}`, b.size);
 
@@ -107,8 +127,12 @@ function drawShader() {
 function setupSocket() {
   socket = io();
   socket.on("bodies", (data) => {
+    prevBodies = bodies;
     bodies = data;
-    isLoaded = true;
+    setTimeout(() => {
+      isLoaded = true;
+  }, 3000)
+    
   });
 }
 
@@ -126,22 +150,17 @@ function setupMic() {
     let detected = speechMic.resultString.split("");
     if(detected.length == 0) return;
     body.chars = detected;
-    console.log("sdfsdf")
 
     setTimeout(() => {
       body.chars = "";
-      // let clearText = setInterval(() => {
-      // body.chars.shift(), 500});
-
-      // setTimeout(() => {
-      //   clearInterval(clearText);
-      // }, 5000)
     }, 1000 + 500 * body.chars.length)
-
-    
 
   }
 }
+
+
+
+
 function setupModel() {
   let options = {
     // imageScaleFactor: 0.3,
@@ -159,31 +178,40 @@ function setupModel() {
   });
 
   poseNet.on("pose", (results) => {
-    let check = results[0].pose.score;
-    if (check) {
-      let nosePoint = results[0].pose.keypoints[0];
-      if (nosePoint.score > 0.5) {
-        body = {
-          x: nosePoint.position.x / width,
-          y: nosePoint.position.y / height,
-          points: body.points,
-          chars: body.chars,
-          synth: body.synth,
-          size: body.size
-        }
+    processBody(results);
+  })
+}
 
-        socket.emit("updateBody", {
-          x: body.x,
-          y: body.y,
-          points: body.points,
-          chars: body.chars,
-          synth: body.synth,
-          size: body.size
-        });
-      }
+function processBody(results) {
+  let check = results[0].pose.score;
+  let nosePoint;
+  if (check) {
+    nosePoint = results[0].pose.keypoints[0];
+  }
+  if (nosePoint.score > 0.2) {
+    body = {
+      x: nosePoint.position.x / width,
+      y: nosePoint.position.y / height,
+      points: body.points,
+      chars: body.chars,
+      synth: body.synth,
+      size: body.size
     }
+  }
+  
+}
+
+function updateBody() {
+  socket.emit("updateBody", {
+    x: body.x,
+    y: body.y,
+    points: body.points,
+    chars: body.chars,
+    synth: body.synth,
+    size: body.size
   });
 }
+
 
 function modelReady() {
   //select("#status").html("Model Loaded");
@@ -192,7 +220,7 @@ function modelReady() {
 
 function drawOthers() {
   for (let id in bodies) {
-    drawTrail(bodies[id]);
+    drawTrail(bodies[id], id);
     playSynth(bodies[id]);
   }
 }
@@ -233,20 +261,33 @@ function playSynth() {
   synth.play(note);
 }
 
-function drawTrail(b) {
-
+let isSmoothed = false;
+let smoothX, smoothY;
+function drawTrail(b, id) {
   //set size of body based on mic volume
   let vol = ambientMic.getLevel();
   let min_threshold = 0.035;
   let max_threshold = 0.1;
 
+  // let prev = prevBodies[id];
+  // if (!isSmoothed) {
+  //   smoothX = prev.x;
+  //   smoothY = prev.y;
+  //   isSmoothed = true;
+  // } else if (isSmoothed && smoothX == b.x) {
+  //   isSmoothed = false;
+  // }
+
+  // console.log(b.x - smoothX);
+  // smoothX = lerp(smoothX, b.x, 0.1);
+  // smoothY = lerp(smoothY, b.y, 0.1);
+  // fill(100);
+  // circle(smoothX * width, smoothY * height, 20);
+
   //threshold for text vs. silence
-  console.log(vol);
   if (vol < min_threshold) vol = 0
   else if (vol > max_threshold) vol = max_threshold;
   b.size = map(vol, 0, max_threshold, 0.04, 0.08);
-
-  //drawBody(b);
   
   for (let i = 0; i < b.points.length; i++) {
     let numVertices = b.chars.length;

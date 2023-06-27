@@ -52,8 +52,8 @@ server.listen(port, () => {
   console.log(`Server running on https://localhost:${port}`);
 });
 
-const frameRate = 30;
+const frameRate = 1;
 setInterval(() => {
   io.emit("bodies", bodies);
-}, 1000 / frameRate);
+}, 100);
 

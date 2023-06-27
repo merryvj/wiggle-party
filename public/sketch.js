@@ -1,6 +1,8 @@
 let socket, video, poseNet, speechMic, ambientMic, speaker, synth;
 let bgShader, bgBuffer;
 let instructions = "speak? or move?";
+let sentiment, prediction = 0.5;
+
 
 let bodies = {}; //from other visitors
 let body = {
@@ -159,6 +161,9 @@ function setupMic() {
     let detected = speechMic.resultString.split("");
     if(detected.length == 0) return;
     body.chars = detected;
+    let text = speechMic.resultString;
+    prediction = sentiment.predict(text);
+    console.log(prediction);
 
     // setTimeout(() => {
     //   body.chars = "";
@@ -189,6 +194,9 @@ function setupModel() {
   poseNet.on("pose", (results) => {
     processBody(results);
   })
+
+  sentiment = ml5.sentiment('movieReviews', modelReady);
+
 }
 
 function processBody(results) {
@@ -272,6 +280,7 @@ function playSynth() {
 
 let isSmoothed = false;
 let smoothX, smoothY;
+let textAngleOffset = 0;
 function drawTrail(b, id) {
   //set size of body based on mic volume
   let vol = ambientMic.getLevel();
@@ -301,7 +310,7 @@ function drawTrail(b, id) {
   for (let i = 0; i < b.points.length; i++) {
     let numVertices = b.chars.length;
     let spacing = 360 / numVertices;
-    let angle = spacing * i - 135;
+    let angle = spacing * i - 135 + textAngleOffset;
     let padding = 40 + numVertices + (b.size);
     let x = cos(radians(angle)) * padding + b.points[i].x * width;
     let y = sin(radians(angle)) * padding + b.points[i].y * height;
@@ -313,6 +322,7 @@ function drawTrail(b, id) {
     //draw text
     textSize(map(i, 0, numVertices, padding / 2, padding/4));
     text(b.chars[i], x, y);
+    textAngleOffset += 0.06;
   }
 }
 

@@ -90,7 +90,6 @@ function draw() {
 }
 
 function drawText() {
-  
   push();
 
   fill(150);
@@ -153,6 +152,7 @@ function setupSocket() {
 function setupMic() {
   ambientMic = new p5.AudioIn();
   ambientMic.start();
+  console.log(ambientMic.vol);
 
   let lang = navigator.language || 'en-US';
   speechMic = new p5.SpeechRec(lang, gotSpeech);
@@ -388,6 +388,9 @@ function drawMouth(x, y, size, sentiment) {
   pop();
 }
 
+function mousePressed() {
+  userStartAudio();
+}
 
 function windowResized() {
   resizeCanvas(window.innerWidth, window.innerHeight);

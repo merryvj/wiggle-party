@@ -306,6 +306,7 @@ function drawTrail(b, id, bNum) {
   let max_threshold = 0.15;
 
   let prev = prevBodies[id];
+  if (!prev) return;
   prev.x = lerp(prev.x, b.x, 0.1);
   prev.y = lerp(prev.y, b.y, 0.1);
 

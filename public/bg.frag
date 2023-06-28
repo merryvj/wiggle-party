@@ -61,7 +61,7 @@ void main() {
     p1.x *= u_resolution.x/u_resolution.y;
     p2.x *= u_resolution.x/u_resolution.y;
 
-    vec3 col = cosPalette(st.x * (st.y + cos(u_time * 0.06)), vec3(1.,1.,1.),vec3(0.3,0.3,0.3),vec3(1.0,1.0,1.0),vec3(0.0,0.33,0.67) );
+    vec3 col = cosPalette(st.x * st.y * (0.3 + cos(u_time * 0.06)), vec3(1.,1.,1.),vec3(0.3,0.3,0.3),vec3(1.0,1.0,1.0),vec3(0.0,0.33,0.67) );
     vec3 color = vec3(0.);
     color += body(st, p1, radius1 + rand2D(st + sin(u_time) * 0.01) * 0.1, 0.2) * col;
     color += body(st, p2, radius2 + rand2D(st + sin(u_time) * 0.01) * 0.1 , 0.2) * col;

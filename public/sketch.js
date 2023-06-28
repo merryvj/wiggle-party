@@ -40,6 +40,7 @@ function setup() {
   //setup canvas
   createCanvas(window.innerWidth, window.innerHeight);
   bgBuffer = createGraphics(window.innerWidth, window.innerHeight, WEBGL);
+  pixelDensity(1);
   bgBuffer.bgShader = bgShader;
 
   
@@ -368,12 +369,13 @@ function drawEye(x, y) {
   translate(x, y);
   // fill(255);
   // circle(0, 0, 18);
+  let diameter = 10 + 0.005 * width;
   fill(180);
-  circle(0, 0, 15);
+  circle(0, 0, diameter);
   fill(0);
-  circle(0, 1, 10);
+  circle(0, 1, diameter * 0.7);
   fill(180);
-  circle(2.2, -2.2, 3.8);
+  circle(2.2, -2.2, diameter * 0.3);
   pop();
 }
 
@@ -393,5 +395,4 @@ function drawMouth(x, y, size, sentiment) {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   bgBuffer.bgShader.setUniform("u_resolution", [width, height]);
-
 }

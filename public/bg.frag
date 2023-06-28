@@ -6,6 +6,7 @@ precision mediump float;
 #endif
 
 uniform vec2 u_resolution;
+uniform float density;
 uniform float u_time;
 uniform vec2 point1;
 uniform vec2 point2;
@@ -54,8 +55,8 @@ void main() {
     vec2 p1 = point1;
     vec2 p2 = point2;
 
-    p1 *= vec2(3.0);
-    p2 *= vec2(3.0);
+    p1 *= vec2(density);
+    p2 *= vec2(density);
 
     p1.x *= u_resolution.x/u_resolution.y;
     p2.x *= u_resolution.x/u_resolution.y;

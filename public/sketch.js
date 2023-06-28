@@ -1,7 +1,7 @@
 let socket, video, poseNet, speechMic, ambientMic, speaker, synth;
 let bgShader, bgBuffer;
 let instructions = "speak? or move?";
-
+let pixelDensity = 2;
 let distBetween = 0.5; let isOverlapping = false;
 
 let bodies = {}; //from other visitors
@@ -38,11 +38,10 @@ function setup() {
 
 
   //setup canvas
-  let d = window.pixelDensity();
   createCanvas(window.innerWidth, window.innerHeight);
   bgBuffer = createGraphics(window.innerWidth, window.innerHeight, WEBGL);
   bgBuffer.bgShader = bgShader;
-
+  pixelDensity = window.pixelDensity();
   
   //start video capture
   video = createCapture(VIDEO);
@@ -117,6 +116,8 @@ function drawShader() {
   bgBuffer.shader(bgShader);
   bgBuffer.bgShader.setUniform("u_resolution", [width, height]);
   bgBuffer.bgShader.setUniform("u_time", millis() / 1000.0);
+  bgBuffer.bgShader.setUniform("density", pixelDensity);
+
   
   pointNum = 1;
   for (let id in bodies) {
@@ -172,10 +173,6 @@ function setupMic() {
     //   body.chars = "";
     // }, 1000 + 500 * body.chars.length)
   }
-
-  setInterval(() => {
-    speechMic.start()
-  }, 10000)
 }
 
 

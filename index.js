@@ -24,6 +24,7 @@ io.on('connection', (socket) => {
   bodies[socket.id] = {
     x: 0.5,
     y: 0.5,
+    prev: {x:0, y:0},
     points: [],
     chars:[],
     synth: null,
@@ -49,7 +50,7 @@ server.listen(port, () => {
   console.log(`Server running on https://localhost:${port}`);
 });
 
-const frameRate = 1;
+const frameRate = 24;
 setInterval(() => {
   io.emit("bodies", bodies);
 }, 100);

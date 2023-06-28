@@ -24,7 +24,7 @@ io.on('connection', (socket) => {
   bodies[socket.id] = {
     x: 0.5,
     y: 0.5,
-    prev: {x:0, y:0},
+    prev: {x:0.5, y:0.5},
     points: [],
     chars:[],
     synth: null,

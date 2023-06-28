@@ -7,11 +7,11 @@ let startBttn;
 
 let bodies = {}; //from other visitors
 let body = {
-  x: 0,
-  y: 0,
+  x: 0.5,
+  y: 0.5,
   prev: {
-    x: 0,
-    y: 0
+    x: 0.5,
+    y: 0.5
   },
   points: [],
   chars: [],
@@ -76,7 +76,7 @@ function draw() {
     //fill in empty point array 
     if(body.points.length == 0) {
       for (let i = 0; i < 20; i++) {
-        body.points.push({ x: 0, y: 0});
+        body.points.push({ x: 0.5, y: 0.5});
       }
     //handle 
     } else if (body.points.length < body.chars.length) {
@@ -92,7 +92,7 @@ function draw() {
     for (let i = 0; i < body.points.length - 1; i++) {
       body.points[i] = body.points[i + 1];
     }
-    body.points[body.points.length - 1] = { x: body.x, y: body.y };
+    body.points[body.points.length - 1] = { x: body.prev.x, y: body.prev.y };
 
     drawShader();
     drawOthers();
@@ -314,7 +314,6 @@ function playSynth() {
 }
 
 let isSmoothed = false;
-let smoothX, smoothY;
 
 function drawTrail(b, pointNum) {
   //set size of body based on mic volume
@@ -322,7 +321,6 @@ function drawTrail(b, pointNum) {
   let min_threshold = 0.08;
   let max_threshold = 0.8;
 
-  console.log(b.prev.x, b.x);
   if (!isSmoothed) {
     b.x = body.prev.x;
     b.y = body.prev.y;

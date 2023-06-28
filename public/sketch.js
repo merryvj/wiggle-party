@@ -337,9 +337,9 @@ function drawTrail(b, id, bNum) {
       let c = map(i, 0, numVertices - 1, 240, 180);
       fill(c * b.x, c * b.y, c * b.x);
 
-      padding = map(padding, 30, 80, 35, 22);
+      padding = map(padding, 30, 90, 35, 25);
       //position text
-      textSize(map(i, 0, numVertices, padding, padding/1.5));
+      textSize(map(i, 0, numVertices, padding, padding/1.3));
       text(b.chars[i], x, y);
     }
   }

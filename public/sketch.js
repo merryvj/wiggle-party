@@ -2,6 +2,7 @@ let socket, video, poseNet, speechMic, ambientMic, speaker, synth;
 let bgShader, bgBuffer;
 let instructions = "speak? or move?";
 
+let distBetween = 0.5; let isOverlapping = false;
 
 let bodies = {}; //from other visitors
 let body = {
@@ -33,12 +34,15 @@ function preload() {
 function setup() {
   setupSocket();
   setupMic();
+  textFont('Georgia');
+
 
   //setup canvas
   createCanvas(window.innerWidth, window.innerHeight);
   bgBuffer = createGraphics(window.innerWidth, window.innerHeight, WEBGL);
   bgBuffer.bgShader = bgShader;
 
+  
   //start video capture
   video = createCapture(VIDEO);
   video.size(width, height);
@@ -57,7 +61,6 @@ function setup() {
 function draw() {
   background(0);
   if(isLoaded) {
-    console.log(body.points.length, body.chars.length);
     if(body.points.length == 0) {
       for (let i = 0; i < body.chars.length; i++) {
         body.points.push({ x: 0, y: 0});
@@ -89,6 +92,7 @@ function draw() {
 function drawText() {
   
   push();
+
   fill(150);
   textSize(24);
   textAlign(CENTER);
@@ -139,7 +143,7 @@ function setupSocket() {
     bodies = data;
     setTimeout(() => {
       isLoaded = true;
-  }, 5000)
+  }, 3000)
     
   });
 }
@@ -155,6 +159,7 @@ function setupMic() {
   body.chars = [];
 
   function gotSpeech() {
+    instructions = "";
     let detected = speechMic.resultString.split("");
     if(detected.length == 0) return;
     body.chars = detected;
@@ -210,7 +215,7 @@ function processBody(results) {
     nosePoint = results[0].pose.keypoints[0];
   }
   if (nosePoint.score > 0.2) {
-    body = {
+    let newBody = {
       x: nosePoint.position.x / width,
       y: nosePoint.position.y / height,
       points: body.points,
@@ -218,6 +223,11 @@ function processBody(results) {
       synth: body.synth,
       size: body.size,
       sentiment: body.sentiment
+    }
+
+    //stabilize movement
+    if (abs(newBody.x - body.x) > 0.01) {
+      body = newBody;
     }
   }
   
@@ -242,9 +252,21 @@ function modelReady() {
 
 
 function drawOthers() {
+  //check if bodies are overlapping i.e. nearby each other
+  if (Object.keys(bodies).length > 1) {
+    let b1 = bodies[Object.keys(bodies)[0]];
+    let b2 = bodies[Object.keys(bodies)[1]]
+
+    distBetween = sqrt(sq(b1.x - b2.x) + sq(b1.y - b2.y));
+    if (distBetween < 0.06) isOverlapping = true
+    else isOverlapping = false;
+  }
+
   for (let id in bodies) {
     drawTrail(bodies[id], id);
-    //playSynth(bodies[id]);
+    if (isOverlapping) {
+      playSynth(bodies[id]);
+    }
   }
 }
 
@@ -252,10 +274,7 @@ function getAvg(array) {
   return array.reduce((a, b) => a + b) / array.length;
 } 
 
-
 function playSynth() {
-
-  if(bodies.length == 0 || !body.x) return;
   
   let posVals = [];
 
@@ -274,12 +293,8 @@ function playSynth() {
   if (posVals.length === 1) {
    posVals.push({x: 0.5, y: 0.5})
   } 
-  let xDiff = sq(posVals[0].x - posVals[1].x);
-  let yDiff = sq(posVals[0].y - posVals[1].y);
-  
-  let avgDiff = sqrt(xDiff + yDiff);
 
-  let newAmp = map(avgDiff, 0, 0.5, 1, 0);
+  let newAmp = map(distBetween, 0, 0.5, 1, 0);
   synth.amp(newAmp, 0);
   synth.play(note);
 }
@@ -315,29 +330,35 @@ function drawTrail(b, id) {
   b.size = map(vol, 0, max_threshold, 0.04, 0.08);
 
 
-  //draw eye
-  drawEye((b.x - 0.0132) * width, (b.y - 0.005) * height);
-  drawEye((b.x + 0.0132) * width, (b.y - 0.005) * height);
-  drawMouth(b.x * width, (b.y + 0.01) * height, b.size, b.sentiment);
-  
-  
-  for (let i = 0; i < b.points.length; i++) {
-    let numVertices = b.chars.length;
-    let spacing = 360 / numVertices;
-    let angle = spacing * i - 135 + textAngleOffset;
-    let padding = 35 + numVertices + (b.size);
-    let x = cos(radians(angle)) * padding + b.points[i].x * width;
-    let y = sin(radians(angle)) * padding + b.points[i].y * height;
-
-    //generate random colors for text
-    let c = map(i, 0, numVertices - 1, 220, 150);
-    fill(c * b.x, c * b.y, c * b.x);
+ 
+  if (!isOverlapping) {
+    //draw eye and mouth
+    drawEye((b.x - 0.0132) * width, (b.y - 0.005) * height);
+    drawEye((b.x + 0.0132) * width, (b.y - 0.005) * height);
+    drawMouth(b.x * width, (b.y + 0.01) * height, b.size, b.sentiment);
 
     //draw text
-    textSize(map(i, 0, numVertices, padding / 2, padding/4));
-    text(b.chars[i], x, y);
-    textAngleOffset += 0.03;
+    for (let i = 0; i < b.points.length; i++) {
+      let numVertices = b.chars.length;
+      let spacing = 360 / numVertices;
+      let angle = spacing * i - 135 + textAngleOffset;
+      let padding = 35 + numVertices + (b.size);
+      let x = cos(radians(angle)) * padding + b.points[i].x * width;
+      let y = sin(radians(angle)) * padding + b.points[i].y * height;
+
+      //generate random colors for text
+      let c = map(i, 0, numVertices - 1, 220, 150);
+      fill(c * b.x, c * b.y, c * b.x);
+
+      //position text
+      textSize(map(i, 0, numVertices, padding / 2, padding/4));
+      text(b.chars[i], x, y);
+      textAngleOffset += 0.03;
+    }
   }
+  
+  
+  
 }
 
 

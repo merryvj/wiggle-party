@@ -123,7 +123,7 @@ function drawShader() {
   for (let id in bodies) {
     let b = bodies[id];
     bgBuffer.bgShader.setUniform(`point${pointNum}`, [b.x, map(b.y, 0, 1, 1, 0)]);
-    bgBuffer.bgShader.setUniform(`radius${pointNum}`, b.size);
+    bgBuffer.bgShader.setUniform(`radius${pointNum}`, b.size * pixelDensity / 2);
 
     pointNum++;
   }

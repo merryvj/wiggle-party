@@ -312,7 +312,7 @@ function drawTrail(b, id, bNum) {
   //update shader
   let size = isOverlapping ? b.size * 1.5 : b.size;
   bgBuffer.bgShader.setUniform(`point${bNum}`, [prev.x, map(prev.y, 0, 1, 1, 0)]);
-  bgBuffer.bgShader.setUniform(`radius${bNum}`, size * pixelDensity);
+  bgBuffer.bgShader.setUniform(`radius${bNum}`, size * (pixelDensity) * width * 0.0000005);
 
   //threshold for text vs. silence
   if (vol > max_threshold) vol = max_threshold;
@@ -329,7 +329,7 @@ function drawTrail(b, id, bNum) {
       let numVertices = b.points.length;
       let spacing = 360 / numVertices;
       let angle = spacing * i - 135;
-      let padding = 20 + width * 0.01 * numVertices * 0.12;
+      let padding = 28 + width * 0.01 * numVertices * 0.1;
       let x = cos(radians(angle)) * padding + b.points[i].x * width;
       let y = sin(radians(angle)) * padding + b.points[i].y * height;
 
@@ -337,8 +337,9 @@ function drawTrail(b, id, bNum) {
       let c = map(i, 0, numVertices - 1, 240, 180);
       fill(c * b.x, c * b.y, c * b.x);
 
+      padding = map(padding, 30, 80, 35, 22);
       //position text
-      textSize(map(i, 0, numVertices, padding / 2.5, padding/5));
+      textSize(map(i, 0, numVertices, padding, padding/1.5));
       text(b.chars[i], x, y);
     }
   }
@@ -366,7 +367,7 @@ function drawMouth(x, y, size, sentiment) {
   stroke(0);
   let emotion = map(sentiment, 0, 1, -4, 4);
   if (emotion == 0) emotion = 3;
-  emotion *= map(size, 0.04, 0.08, 1, 5);
+  emotion *= map(size, 0.04, 0.08, 2, 5);
   bezier(x, y, x+5, y+emotion, x+15, y+emotion, x+20, y);
   pop();
 }

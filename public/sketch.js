@@ -64,6 +64,9 @@ function setup() {
       isLoaded = true;
       userStartAudio();
       startBttn.remove();
+      setTimeout(() => {
+        instructions = ""
+      }, 10000)
     })
 }
 
@@ -112,9 +115,6 @@ function drawText() {
 
     text(instructions, width/2, height-50);
   }
-  if (body.chars.length > 0) {
-    instructions = "";
-  }
   pop();
 }
 
@@ -133,10 +133,9 @@ function drawShader() {
   pointNum = 1;
   for (let id in bodies) {
     let b = bodies[id];
-    let size = isOverlapping ? b.size * 2 : b.size;
+    let size = isOverlapping ? b.size * 1.5 : b.size;
     bgBuffer.bgShader.setUniform(`point${pointNum}`, [b.x, map(b.y, 0, 1, 1, 0)]);
-    bgBuffer.bgShader.setUniform(`radius${pointNum}`, size * pixelDensity / 2);
-
+    bgBuffer.bgShader.setUniform(`radius${pointNum}`, size * pixelDensity);
     pointNum++;
   }
 

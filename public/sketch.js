@@ -312,7 +312,7 @@ function drawTrail(b, id, bNum) {
   //update shader
   let size = isOverlapping ? b.size * 1.5 : b.size;
   bgBuffer.bgShader.setUniform(`point${bNum}`, [prev.x, map(prev.y, 0, 1, 1, 0)]);
-  bgBuffer.bgShader.setUniform(`radius${bNum}`, size * (pixelDensity * 1.3) * width * 0.0000005);
+  bgBuffer.bgShader.setUniform(`radius${bNum}`, size * (pixelDensity * 1.5) * width * 0.0000005);
 
   //threshold for text vs. silence
   if (vol > max_threshold) vol = max_threshold;

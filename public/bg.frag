@@ -54,8 +54,8 @@ void main() {
     vec2 p1 = point1;
     vec2 p2 = point2;
 
-    p1 *= vec2(2.0);
-    p2 *= vec2(2.0);
+    p1 *= vec2(3.0);
+    p2 *= vec2(3.0);
 
     p1.x *= u_resolution.x/u_resolution.y;
     p2.x *= u_resolution.x/u_resolution.y;

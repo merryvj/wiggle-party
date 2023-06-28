@@ -38,9 +38,9 @@ function setup() {
 
 
   //setup canvas
+  let d = window.pixelDensity();
   createCanvas(window.innerWidth, window.innerHeight);
   bgBuffer = createGraphics(window.innerWidth, window.innerHeight, WEBGL);
-  pixelDensity(1);
   bgBuffer.bgShader = bgShader;
 
   
@@ -393,6 +393,8 @@ function drawMouth(x, y, size, sentiment) {
 
 
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+  resizeCanvas(window.innerWidth, window.innerHeight);
+  bgBuffer.width = window.innerWidth;
+  bgBuffer.height = window.innerHeight;
   bgBuffer.bgShader.setUniform("u_resolution", [width, height]);
 }

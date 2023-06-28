@@ -20,7 +20,7 @@ let body = {
   sentiment: 0.5,
 }
 
-let prevBodies = {body};
+let prevBodies = bodies;
 
 let prevX = 0, prevY = 0;
 
@@ -61,13 +61,14 @@ function setup() {
     startBttn.size(180, 40);
     startBttn.position(width/2 - 90, height/2 + 25);
     startBttn.mousePressed(() => {
-      isLoaded = true;
       userStartAudio();
       startBttn.remove();
       setTimeout(() => {
         instructions = ""
       }, 10000)
     })
+
+  frameRate(12);
 }
 
 
@@ -82,15 +83,13 @@ function draw() {
     //handle 
     } else if (body.points.length < body.chars.length) {
       for (let i = body.points.length - 1; i < body.chars.length; i++){
-        body.points.push({ x: 0, y: 0});
+        body.points.push({ x: body.x, y: body.y});
       }
     } else if (body.chars.length < 20 && body.points.length > 20) {
       for (let i = body.points.length - 1; i > 19; i--) {
         body.points.pop();
       }
     }
-
-    console.log(body.chars.length, body.points.length);
 
     for (let i = 0; i < body.points.length - 1; i++) {
       body.points[i] = body.points[i + 1];
@@ -129,16 +128,6 @@ function drawShader() {
   bgBuffer.bgShader.setUniform("u_time", millis() / 1000.0);
   bgBuffer.bgShader.setUniform("density", pixelDensity);
 
-  
-  pointNum = 1;
-  for (let id in bodies) {
-    let b = bodies[id];
-    let size = isOverlapping ? b.size * 1.5 : b.size;
-    bgBuffer.bgShader.setUniform(`point${pointNum}`, [b.x, map(b.y, 0, 1, 1, 0)]);
-    bgBuffer.bgShader.setUniform(`radius${pointNum}`, size * pixelDensity);
-    pointNum++;
-  }
-
   bgBuffer.rectMode(CENTER);
   bgBuffer.rect(0,0,100,200);
   bgBuffer.rect(200,300,100,100);
@@ -154,9 +143,9 @@ function setupSocket() {
   socket.on("bodies", (data) => {
     prevBodies = bodies;
     bodies = data;
-  //   setTimeout(() => {
-  //     isLoaded = true;
-  // }, 3000)
+    setTimeout(() => {
+      isLoaded = true;
+  }, 3000)
     
   });
 }
@@ -178,7 +167,6 @@ function setupMic() {
     body.chars = detected;
     let text = speechMic.resultString;
     body.sentiment = sentiment.predict(text).score;
-    console.log(detected);
     // setTimeout(() => {
     //   body.chars = "";
     // }, 1000 + 500 * body.chars.length)
@@ -270,11 +258,13 @@ function drawOthers() {
     else isOverlapping = false;
   }
 
+  let pointNum = 1;
   for (let id in bodies) {
-    drawTrail(bodies[id], id);
+    drawTrail(bodies[id], id, pointNum);
     if (isOverlapping) {
-      playSynth(bodies[id]);
+      playSynth();
     }
+    pointNum++;
   }
 }
 
@@ -307,59 +297,48 @@ function playSynth() {
   synth.play(note);
 }
 
-let isSmoothed = false;
-let smoothX, smoothY;
 
-function drawTrail(b, id) {
+function drawTrail(b, id, bNum) {
   //set size of body based on mic volume
   let vol = ambientMic.getLevel();
-  let min_threshold = 0.08;
-  let max_threshold = 0.8;
+  console.log(vol);
+  let min_threshold = 0.05;
+  let max_threshold = 0.15;
 
-  // let prev = prevBodies[id];
-  // if (!isSmoothed) {
-  //   smoothX = prev.x;
-  //   smoothY = prev.y;
-  //   isSmoothed = true;
-  // } else if (isSmoothed && smoothX == b.x) {
-  //   isSmoothed = false;
-  // }
+  let prev = prevBodies[id];
+  prev.x = lerp(prev.x, b.x, 0.1);
+  prev.y = lerp(prev.y, b.y, 0.1);
 
-  // console.log(b.x - smoothX);
-  // smoothX = lerp(smoothX, b.x, 0.1);
-  // smoothY = lerp(smoothY, b.y, 0.1);
-  // fill(100);
-  // circle(smoothX * width, smoothY * height, 20);
-
+  //update shader
+  let size = isOverlapping ? b.size * 1.5 : b.size;
+  bgBuffer.bgShader.setUniform(`point${bNum}`, [prev.x, map(prev.y, 0, 1, 1, 0)]);
+  bgBuffer.bgShader.setUniform(`radius${bNum}`, size * pixelDensity);
 
   //threshold for text vs. silence
-  if (vol < min_threshold) vol = 0
-  else if (vol > max_threshold) vol = max_threshold;
-  b.size = map(vol, 0, max_threshold, 0.04, 0.08);
-
-
+  if (vol > max_threshold) vol = max_threshold;
+  b.size = map(vol, min_threshold, max_threshold, 0.04, 0.08);
  
   if (!isOverlapping) {
     //draw eye and mouth
-    drawEye((b.x - 0.0132) * width, (b.y - 0.005) * height);
-    drawEye((b.x + 0.0132) * width, (b.y - 0.005) * height);
-    drawMouth(b.x * width, (b.y + 0.01) * height, b.size, b.sentiment);
+    drawEye((prev.x - 0.0132) * width, (prev.y - 0.005) * height);
+    drawEye((prev.x + 0.0132) * width, (prev.y - 0.005) * height);
+    drawMouth(prev.x * width, (prev.y + 0.01) * height, b.size, b.sentiment);
 
     //draw text
     for (let i = 0; i < b.points.length; i++) {
       let numVertices = b.points.length;
       let spacing = 360 / numVertices;
       let angle = spacing * i - 135;
-      let padding = 35 + numVertices + (b.size);
+      let padding = 20 + width * 0.01 * numVertices * 0.12;
       let x = cos(radians(angle)) * padding + b.points[i].x * width;
       let y = sin(radians(angle)) * padding + b.points[i].y * height;
 
       //generate random colors for text
-      let c = map(i, 0, numVertices - 1, 220, 150);
+      let c = map(i, 0, numVertices - 1, 240, 180);
       fill(c * b.x, c * b.y, c * b.x);
 
       //position text
-      textSize(map(i, 0, numVertices, padding / 2.5, padding/4.5));
+      textSize(map(i, 0, numVertices, padding / 2.5, padding/5));
       text(b.chars[i], x, y);
     }
   }

@@ -1,8 +1,9 @@
 let socket, video, poseNet, speechMic, ambientMic, speaker, synth;
 let bgShader, bgBuffer;
-let instructions = "speak? or move?";
+let instructions = "say something...or just...groove?";
 let pixelDensity = 2;
 let distBetween = 0.5; let isOverlapping = false;
+let startBttn;
 
 let bodies = {}; //from other visitors
 let body = {
@@ -48,41 +49,51 @@ function setup() {
   video.size(width, height);
   video.hide();
 
-  //set up synth
+  //setup synth
   synth = new p5.MonoSynth();
   synth.triggerAttack();
   synth.amp(0, 0);
 
   setupModel();
 
+  //set up start button
+  startBttn = createButton("i'm ready to wiggle!");
+    startBttn.size(180, 40);
+    startBttn.position(width/2 - 90, height/2 + 25);
+    startBttn.mousePressed(() => {
+      isLoaded = true;
+      userStartAudio();
+      startBttn.remove();
+    })
 }
 
 
 function draw() {
   background(0);
   if(isLoaded) {
+    //fill in empty point array 
     if(body.points.length == 0) {
-      for (let i = 0; i < body.chars.length; i++) {
+      for (let i = 0; i < 20; i++) {
         body.points.push({ x: 0, y: 0});
       }
+    //handle 
     } else if (body.points.length < body.chars.length) {
-
       for (let i = body.points.length - 1; i < body.chars.length; i++){
         body.points.push({ x: 0, y: 0});
       }
-    } else if (body.points.length > body.chars.length) {
-      for (let i = body.points.length - 1; i > body.chars.length - 1; i--) {
+    } else if (body.chars.length < 20 && body.points.length > 20) {
+      for (let i = body.points.length - 1; i > 19; i--) {
         body.points.pop();
       }
     }
+
+    console.log(body.chars.length, body.points.length);
 
     for (let i = 0; i < body.points.length - 1; i++) {
       body.points[i] = body.points[i + 1];
     }
     body.points[body.points.length - 1] = { x: body.x, y: body.y };
 
-  
-   
     drawShader();
     drawOthers();
   }
@@ -91,13 +102,14 @@ function draw() {
 
 function drawText() {
   push();
-
-  fill(150);
-  textSize(24);
+  fill(180);
+  textSize(width * 0.02);
   textAlign(CENTER);
   if (!isLoaded) {
-    text("please allow webcam and video access <3", width/2, height/2)
+    text("please allow webcam and video access <3", width/2, height/2);
+    
   } else {
+
     text(instructions, width/2, height-50);
   }
   if (body.chars.length > 0) {
@@ -121,8 +133,9 @@ function drawShader() {
   pointNum = 1;
   for (let id in bodies) {
     let b = bodies[id];
+    let size = isOverlapping ? b.size * 2 : b.size;
     bgBuffer.bgShader.setUniform(`point${pointNum}`, [b.x, map(b.y, 0, 1, 1, 0)]);
-    bgBuffer.bgShader.setUniform(`radius${pointNum}`, b.size * pixelDensity / 2);
+    bgBuffer.bgShader.setUniform(`radius${pointNum}`, size * pixelDensity / 2);
 
     pointNum++;
   }
@@ -142,9 +155,9 @@ function setupSocket() {
   socket.on("bodies", (data) => {
     prevBodies = bodies;
     bodies = data;
-    setTimeout(() => {
-      isLoaded = true;
-  }, 3000)
+  //   setTimeout(() => {
+  //     isLoaded = true;
+  // }, 3000)
     
   });
 }
@@ -152,7 +165,6 @@ function setupSocket() {
 function setupMic() {
   ambientMic = new p5.AudioIn();
   ambientMic.start();
-  console.log(ambientMic.vol);
 
   let lang = navigator.language || 'en-US';
   speechMic = new p5.SpeechRec(lang, gotSpeech);
@@ -167,8 +179,7 @@ function setupMic() {
     body.chars = detected;
     let text = speechMic.resultString;
     body.sentiment = sentiment.predict(text).score;
-
-
+    console.log(detected);
     // setTimeout(() => {
     //   body.chars = "";
     // }, 1000 + 500 * body.chars.length)
@@ -256,7 +267,7 @@ function drawOthers() {
     let b2 = bodies[Object.keys(bodies)[1]]
 
     distBetween = sqrt(sq(b1.x - b2.x) + sq(b1.y - b2.y));
-    if (distBetween < 0.06) isOverlapping = true
+    if (distBetween < 0.08) isOverlapping = true
     else isOverlapping = false;
   }
 
@@ -287,24 +298,24 @@ function playSynth() {
   let noteIndex = round(map(avgXVal, 0, 1, 0, 6));
   let note = notes[noteIndex];
 
-  //change volume based on closeness of bodies
-  if (posVals.length === 1) {
-   posVals.push({x: 0.5, y: 0.5})
-  } 
+  // //change volume based on closeness of bodies
+  // if (posVals.length === 1) {
+  //  posVals.push({x: 0.5, y: 0.5})
+  // } 
 
-  let newAmp = map(distBetween, 0, 0.5, 1, 0);
+  let newAmp = map(distBetween, 0, 0.08, 1, 0.1);
   synth.amp(newAmp, 0);
   synth.play(note);
 }
 
 let isSmoothed = false;
 let smoothX, smoothY;
-let textAngleOffset = 0;
+
 function drawTrail(b, id) {
   //set size of body based on mic volume
   let vol = ambientMic.getLevel();
-  let min_threshold = 0.025;
-  let max_threshold = 0.1;
+  let min_threshold = 0.08;
+  let max_threshold = 0.8;
 
   // let prev = prevBodies[id];
   // if (!isSmoothed) {
@@ -337,9 +348,9 @@ function drawTrail(b, id) {
 
     //draw text
     for (let i = 0; i < b.points.length; i++) {
-      let numVertices = b.chars.length;
+      let numVertices = b.points.length;
       let spacing = 360 / numVertices;
-      let angle = spacing * i - 135 + textAngleOffset;
+      let angle = spacing * i - 135;
       let padding = 35 + numVertices + (b.size);
       let x = cos(radians(angle)) * padding + b.points[i].x * width;
       let y = sin(radians(angle)) * padding + b.points[i].y * height;
@@ -349,14 +360,10 @@ function drawTrail(b, id) {
       fill(c * b.x, c * b.y, c * b.x);
 
       //position text
-      textSize(map(i, 0, numVertices, padding / 2, padding/4));
+      textSize(map(i, 0, numVertices, padding / 2.5, padding/4.5));
       text(b.chars[i], x, y);
-      textAngleOffset += 0.03;
     }
   }
-  
-  
-  
 }
 
 
@@ -364,8 +371,6 @@ function drawEye(x, y) {
   push();
   noStroke();
   translate(x, y);
-  // fill(255);
-  // circle(0, 0, 18);
   let diameter = 10 + 0.005 * width;
   fill(180);
   circle(0, 0, diameter);
@@ -383,14 +388,11 @@ function drawMouth(x, y, size, sentiment) {
   stroke(0);
   let emotion = map(sentiment, 0, 1, -4, 4);
   if (emotion == 0) emotion = 3;
-  emotion *= map(size, 0.04, 0.08, 1, 6);
+  emotion *= map(size, 0.04, 0.08, 1, 5);
   bezier(x, y, x+5, y+emotion, x+15, y+emotion, x+20, y);
   pop();
 }
 
-function mousePressed() {
-  userStartAudio();
-}
 
 function windowResized() {
   resizeCanvas(window.innerWidth, window.innerHeight);

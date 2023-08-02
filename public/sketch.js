@@ -301,7 +301,6 @@ function playSynth() {
 function drawTrail(b, id, bNum) {
   //set size of body based on mic volume
   let vol = ambientMic.getLevel();
-  console.log(vol);
   let min_threshold = 0.05;
   let max_threshold = 0.15;
 
